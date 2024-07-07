@@ -10,17 +10,15 @@ const NewTab = () => {
   return (
     <div className="App" style={{ backgroundColor: theme === 'light' ? '#eee' : '#222' }}>
       <header className="App-header" style={{ color: theme === 'light' ? '#222' : '#eee' }}>
-        <img src={chrome.runtime.getURL('new-tab/logo.svg')} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>pages/new-tab/src/NewTab.tsx</code> and save to reload.
-        </p>
+        <img src={chrome.runtime.getURL('new-tab/sunglass.svg')} className="App-logo" alt="logo" />
+        <p>WearForGood</p>
         <a
           className="App-link"
           href="https://reactjs.org"
           target="_blank"
           rel="noopener noreferrer"
           style={{ color: theme === 'light' ? '#0281dc' : undefined, marginBottom: '10px' }}>
-          Learn React
+          Sustainable brands with no greenwashing.
         </a>
         <h6>The color of this paragraph is defined using SASS.</h6>
         <ToggleButton>Toggle theme</ToggleButton>
