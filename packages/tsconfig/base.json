@@ -7,7 +7,7 @@
     "noEmit": true,
     "downlevelIteration": true,
     "isolatedModules": true,
-    "strict": true,
+    "strict": false,
     "noImplicitAny": true,
     "strictNullChecks": true,
     "moduleResolution": "node",

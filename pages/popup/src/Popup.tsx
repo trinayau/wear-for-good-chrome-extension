@@ -7,22 +7,110 @@ import { exampleThemeStorage } from '@chrome-extension-boilerplate/storage';
 
 import { ComponentPropsWithoutRef, useEffect, useState } from 'react';
 
+interface BackgroundResponse {
+  status: string;
+  content?: {
+    openai_response: {
+      cost_per_wear: number;
+      durability_days: number;
+    };
+    matches: string[];
+  };
+  message?: string;
+}
+
 const Popup = () => {
   const theme = useStorageSuspense(exampleThemeStorage);
-  const [url, setUrl] = useState('');
-  const [content, setContent] = useState('');
-  const [error, setError] = useState('');
+  const [urlLink, setUrl] = useState('');
+  const [content, setContent] = useState({});
+  const [apiError, setApiError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [costPerWear, setCostPerWear] = useState<number | null>(null);
+  const [durabilityDays, setDurabilityDays] = useState<number | null>(null);
+  const [matches, setMatches] = useState<string[]>([]);
 
+  async function getCurrentTab() {
+    let queryOptions = { active: true, currentWindow: true };
+    let [tab] = await chrome.tabs.query(queryOptions);
+    return tab;
+  }
   useEffect(() => {
-    chrome.runtime.sendMessage({ type: 'SCRAPE_URL', url }, response => {
-      if (response.status === 'error') {
-        setError(response.message);
-      } else {
-        setContent(response.data);
+    // Get the current tab's URL
+    const getUrl = async (): Promise<string | null> => {
+      setLoading(true);
+      try {
+        const tab = await getCurrentTab();
+        const url = tab.url || null;
+        setUrl(url || '');
+        return url;
+      } catch (error) {
+        setApiError(error.message);
+        return null;
       }
-    });
-  }, [url]); // Dependency array includes `url` to trigger effect when `url` changes
-  console.log(content);
+    };
+
+    // Function to send a message to the background script and wait for the response
+    const sendMessageToBackground = (tabUrl: string): Promise<any> => {
+      return new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({ type: 'SCRAPE_URL', url: tabUrl }, response => {
+          if (chrome.runtime.lastError) {
+            reject(chrome.runtime.lastError.message);
+          } else {
+            resolve(response);
+          }
+        });
+      });
+    };
+
+    //    const fetchData = async () => {
+    //     setLoading(true)
+    //   const tabUrl: string | null = await getUrl();
+    //   //send msg to bg script
+    //    chrome.runtime.sendMessage({ type: 'SCRAPE_URL', url: tabUrl }, response => {
+    //         if (response.status === 'error') {
+    //           setError(response.message);
+    //         } else {
+    //           console.log("popup", response.content)
+    //           setContent(response.content.openai_response);
+    //           const parsedResponse = JSON.parse(response.data.openai_response);
+    //           setCostPerWear(parsedResponse.cost_per_wear);
+    //           setDurabilityDays(parsedResponse.durability_days);
+    //           setMatches(response.content.matches);
+    //           setLoading(false);
+    //     }
+    //   });
+    // };
+    // fetchData();
+    // Function to fetch data and update the state
+    const fetchData = async () => {
+      setLoading(true);
+      const tabUrl = await getUrl();
+      if (tabUrl) {
+        try {
+          const response = await sendMessageToBackground(tabUrl);
+          console.log('response', response);
+          if (response.status === 'error') {
+            setApiError(response.message);
+          } else {
+            //  response is an object with below keys:
+            //  status: 'success',
+            // matches: data.matches,
+            // openai_response: data.openai_response,
+            setCostPerWear(response.openai_response.cost_per_wear);
+            setDurabilityDays(response.openai_response.durability_days);
+            setMatches(response.matches);
+          }
+        } catch (error) {
+          setApiError(error.message!);
+        }
+      } else {
+        setApiError('No active tab found');
+      }
+      setLoading(false);
+    };
+
+    fetchData();
+  }, []);
 
   return (
     <div
@@ -33,8 +121,34 @@ const Popup = () => {
       <header className="App-header" style={{ color: theme === 'light' ? '#222' : '#eee' }}>
         <ToggleButton>{theme === 'light' ? <FiSun size={15} /> : <LuMoon size={15} />}</ToggleButton>
         <img src={chrome.runtime.getURL('popup/sunglass.svg')} className="App-logo" alt="logo" />
-
+        {urlLink && <p>Current URL: {urlLink}</p>}
+        {apiError && <p>Error: {apiError}</p>}
         <p>Wear For Good</p>
+        {!loading && (
+          <div>
+            {matches && matches.length > 0 && (
+              <div>
+                <p>Matches:</p>
+                <ul>
+                  {matches.map((match, index) => (
+                    <li key={index}>{match}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {costPerWear && (
+              <p>
+                Cost per wear is £{costPerWear} if you wear it for {durabilityDays} days
+              </p>
+            )}
+            {/* <p>Product: Black swimsuit</p>
+            <p>Cost: £25</p>
+     
+            <p>Cost per wear is £0.025 if you wear it for 1000 days</p>
+            <p>Durability Days: 1000 days</p>
+            <p>Wear for good rec:Alternative</p> */}
+          </div>
+        )}
       </header>
     </div>
   );
