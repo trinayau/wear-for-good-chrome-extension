@@ -28,6 +28,7 @@ const Popup = () => {
   const [costPerWear, setCostPerWear] = useState<number | null>(null);
   const [durabilityDays, setDurabilityDays] = useState<number | null>(null);
   const [matches, setMatches] = useState<string[]>([]);
+  const [ourRating, setRating] = useState<number | null>(null);
 
   async function getCurrentTab() {
     let queryOptions = { active: true, currentWindow: true };
@@ -99,6 +100,7 @@ const Popup = () => {
             setCostPerWear(response.openai_response.cost_per_wear);
             setDurabilityDays(response.openai_response.durability_days);
             setMatches(response.matches);
+            setRating(response.openai_response.rating);
           }
         } catch (error) {
           setApiError(error.message!);
@@ -121,7 +123,6 @@ const Popup = () => {
       <header className="App-header" style={{ color: theme === 'light' ? '#222' : '#eee' }}>
         <ToggleButton>{theme === 'light' ? <FiSun size={15} /> : <LuMoon size={15} />}</ToggleButton>
         <img src={chrome.runtime.getURL('popup/sunglass.svg')} className="App-logo" alt="logo" />
-        {urlLink && <p>Current URL: {urlLink}</p>}
         {apiError && <p>Error: {apiError}</p>}
         <p>Wear For Good</p>
         {!loading && (
@@ -138,9 +139,10 @@ const Popup = () => {
             )}
             {costPerWear && (
               <p>
-                Cost per wear is £{costPerWear} if you wear it for {durabilityDays} days
+                Cost per wear is £{costPerWear.toFixed(2)} if you wear it for {durabilityDays} days
               </p>
             )}
+            {ourRating && <p>Our Rating: {ourRating}</p>}
             {/* <p>Product: Black swimsuit</p>
             <p>Cost: £25</p>
      
